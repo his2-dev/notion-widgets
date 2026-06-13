@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-13T18:12:11.746Z",
+  "updatedAt": "2026-06-13T19:02:30.970Z",
   "rows": [
     {
       "date": "2026-06-07",
@@ -56,6 +56,142 @@
       "독서": true,
       "일기": true,
       "기상": true
+    },
+    {
+      "date": "2026-06-14",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-15",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-16",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-17",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-18",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-19",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-20",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-21",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-22",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-23",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-24",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-25",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-26",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-27",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-28",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-29",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
+    },
+    {
+      "date": "2026-06-30",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false
     }
   ]
 }
