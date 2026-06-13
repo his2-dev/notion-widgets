@@ -1,10 +1,40 @@
 {
-  "updatedAt": "2026-06-13T12:00:00.000Z",
+  "updatedAt": "2026-06-13T18:12:11.985Z",
   "rows": [
-    { "title": "자소서 마감 제출",      "date": "2026-06-14", "priority": "높음", "category": "취준",    "done": false },
-    { "title": "포트폴리오 1p 수정",     "date": "2026-06-15", "priority": "높음", "category": "취준",    "done": false },
-    { "title": "GA4 강의 3강 듣기",      "date": "2026-06-14", "priority": "중간", "category": "공부",    "done": false },
-    { "title": "운동 30분",             "date": "2026-06-13", "priority": "낮음", "category": "생활",    "done": false },
-    { "title": "챌린지봇 로그 확인",      "date": "2026-06-13", "priority": "중간", "category": "프로젝트", "done": true  }
+    {
+      "title": "포트폴리오 1p 수정",
+      "date": "2026-06-15",
+      "priority": "높음",
+      "category": "취준",
+      "done": false
+    },
+    {
+      "title": "자소서 마감 제출",
+      "date": "2026-06-14",
+      "priority": "높음",
+      "category": "취준",
+      "done": false
+    },
+    {
+      "title": "GA4 강의 3강 듣기",
+      "date": "2026-06-14",
+      "priority": "중간",
+      "category": "공부",
+      "done": false
+    },
+    {
+      "title": "운동 30분",
+      "date": "2026-06-13",
+      "priority": "낮음",
+      "category": "생활",
+      "done": false
+    },
+    {
+      "title": "챌린지봇 로그 확인",
+      "date": "2026-06-13",
+      "priority": "중간",
+      "category": "프로젝트",
+      "done": true
+    }
   ]
 }
