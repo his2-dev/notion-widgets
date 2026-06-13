@@ -1,11 +1,13 @@
 {
-  "updatedAt": "2026-06-13T19:02:31.296Z",
+  "updatedAt": "2026-06-13T19:07:59.113Z",
   "rows": [
     {
       "title": "포트폴리오 1p 수정",
       "date": "2026-06-15",
       "priority": "높음",
       "category": "취준",
+      "estimatedMinutes": null,
+      "energy": null,
       "done": false
     },
     {
@@ -13,6 +15,8 @@
       "date": "2026-06-14",
       "priority": "높음",
       "category": "취준",
+      "estimatedMinutes": null,
+      "energy": null,
       "done": false
     },
     {
@@ -20,6 +24,8 @@
       "date": "2026-06-14",
       "priority": "중간",
       "category": "공부",
+      "estimatedMinutes": null,
+      "energy": null,
       "done": false
     },
     {
@@ -27,6 +33,8 @@
       "date": "2026-06-13",
       "priority": "낮음",
       "category": "생활",
+      "estimatedMinutes": null,
+      "energy": null,
       "done": false
     },
     {
@@ -34,6 +42,8 @@
       "date": "2026-06-13",
       "priority": "중간",
       "category": "프로젝트",
+      "estimatedMinutes": null,
+      "energy": null,
       "done": true
     }
   ]
