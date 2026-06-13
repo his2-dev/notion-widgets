@@ -33,6 +33,8 @@
   .pri.중간 { background: #ffd000; }
   .pri.낮음 { background: #b0b0b0; }
   .cat { font-size: 10px; color: #444; background: #dfdfdf; padding: 0 4px; border: 1px solid #b0b0b0; }
+  .meta { font-size: 9px; color: #555; white-space: nowrap; }
+  .empty { padding: 12px 4px; text-align: center; color: #555; font-size: 11px; }
   .sync { font-size: 10px; color: #555; text-align: right; margin-top: 6px; }
 </style>
 </head>
@@ -66,19 +68,29 @@
     const list = document.getElementById("list");
     list.innerHTML = "";
     let done = 0, left = 0;
-    (data.rows || []).forEach(t => {
-      if (t.done) done++; else left++;
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = data.rows || [];
+    done = rows.filter(t => t.done && t.date === today).length;
+    const visible = rows
+      .filter(t => !t.done && (!t.date || t.date <= today))
+      .slice(0, 7);
+    visible.forEach(t => {
+      left++;
       const li = document.createElement("li");
       if (t.done) li.className = "done";
       li.innerHTML =
         `<span class="chk ${t.done ? "done" : ""}"></span>` +
         (t.priority ? `<span class="pri ${t.priority}" title="${t.priority}"></span>` : "") +
         `<span class="task-title"></span>` +
+        (t.estimatedMinutes ? `<span class="meta">${t.estimatedMinutes}m</span>` : "") +
         (t.category ? `<span class="cat"></span>` : "");
       li.querySelector(".task-title").textContent = t.title;
       if (t.category) li.querySelector(".cat").textContent = t.category;
       list.appendChild(li);
     });
+    if (!visible.length) {
+      list.innerHTML = '<li class="empty">오늘 남은 할 일이 없습니다.</li>';
+    }
     document.getElementById("left").textContent = left;
     document.getElementById("done").textContent = done;
     const when = data.updatedAt ? new Date(data.updatedAt).toLocaleString("ko-KR") : "—";

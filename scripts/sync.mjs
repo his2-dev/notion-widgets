@@ -21,6 +21,11 @@ const TARGETS = [
       if (!date) return null;
       const row = { date };
       for (const h of HABITS) row[h] = !!(p[h]?.checkbox);
+      row.mood = p["기분"]?.select?.name || null;
+      row.sleepHours = p["수면(시간)"]?.number ?? null;
+      row.focusMinutes = p["집중(분)"]?.number ?? null;
+      row.highlight = p["오늘의 한 가지"]?.rich_text?.map(t => t.plain_text).join("") || "";
+      row.oneLine = p["한 줄"]?.rich_text?.map(t => t.plain_text).join("") || "";
       return row;
     },
     sort: (a, b) => a.date.localeCompare(b.date),
@@ -38,6 +43,8 @@ const TARGETS = [
         date: p["Date"]?.date?.start || null,
         priority: p["우선순위"]?.select?.name || null,
         category: p["분류"]?.select?.name || null,
+        estimatedMinutes: p["예상시간(분)"]?.number ?? null,
+        energy: p["에너지"]?.select?.name || null,
         done: !!(p["완료"]?.checkbox),
       };
     },

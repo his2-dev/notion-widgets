@@ -14,7 +14,7 @@
     display: flex; justify-content: center; align-items: flex-start;
     min-height: 100vh;
   }
-  .window { width: 320px; margin: 10px; }
+  .window { width: 360px; margin: 10px; }
   .title-bar-text { display: flex; align-items: center; gap: 4px; }
   .grid {
     width: 100%; border-collapse: collapse; margin-top: 4px;
@@ -45,6 +45,18 @@
   .status-field { flex: 1; text-align: center; }
   .streak { color: #aa0000; font-weight: bold; }
   .sync { font-size: 10px; color: #555; text-align: right; margin-top: 6px; }
+  .today-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px;
+  }
+  .summary-card {
+    min-width: 0; padding: 5px 4px; background: #fff; border: 2px inset #fff;
+    text-align: center; font-size: 10px;
+  }
+  .summary-card strong { display: block; margin-top: 2px; font-size: 12px; }
+  .highlight {
+    margin-top: 5px; padding: 5px 7px; background: #ffffd8; border: 1px solid #808080;
+    font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 </style>
 </head>
 <body>
@@ -76,6 +88,12 @@
         <div class="status-bar-field status-field">🔥 연속 <span class="streak" id="streak">0</span>일</div>
         <div class="status-bar-field status-field">달성 <span id="count">0</span>/35</div>
       </div>
+      <div class="today-summary">
+        <div class="summary-card">기분<strong id="mood">-</strong></div>
+        <div class="summary-card">수면<strong id="sleep">-</strong></div>
+        <div class="summary-card">집중<strong id="focus">-</strong></div>
+      </div>
+      <div class="highlight" id="highlight">오늘의 한 가지를 정해보세요.</div>
       <div class="sync" id="sync">동기화 대기 중…</div>
     </div>
   </div>
@@ -145,6 +163,15 @@
       if (allDone) streak++; else break;
     }
     document.getElementById("streak").textContent = streak;
+
+    const today = byDate[ymd(new Date())] || {};
+    document.getElementById("mood").textContent = today.mood || "-";
+    document.getElementById("sleep").textContent =
+      today.sleepHours == null ? "-" : today.sleepHours + "h";
+    document.getElementById("focus").textContent =
+      today.focusMinutes == null ? "-" : today.focusMinutes + "m";
+    document.getElementById("highlight").textContent =
+      today.highlight || today.oneLine || "오늘의 한 가지를 정해보세요.";
 
     const when = data.updatedAt ? new Date(data.updatedAt).toLocaleString("ko-KR") : "—";
     document.getElementById("sync").textContent = "🔄 마지막 동기화: " + when;
