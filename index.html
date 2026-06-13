@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>hyein's widgets</title>
+<link rel="stylesheet" href="https://unpkg.com/98.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0; background: #008080;
+    font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+    -webkit-font-smoothing: none; min-height: 100vh;
+    display: flex; justify-content: center; align-items: flex-start;
+  }
+  .window { width: 340px; margin: 24px 10px; }
+  ul.apps { list-style: none; margin: 6px 0; padding: 0; }
+  ul.apps li { padding: 2px 0; }
+  ul.apps a {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+    text-decoration: none; color: #000; font-size: 13px;
+  }
+  ul.apps a:hover { background: #000080; color: #fff; }
+  .ico { font-size: 18px; width: 22px; text-align: center; }
+  .url { font-size: 10px; color: #555; }
+  ul.apps a:hover .url { color: #c0c0ff; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">🪟 hyein's widgets</div>
+      <div class="title-bar-controls"><button aria-label="Close"></button></div>
+    </div>
+    <div class="window-body">
+      <p style="margin:2px 0 8px;font-size:12px;">노션 2026 PLANNER 임베드용 레트로 위젯 모음 ⊹˚.⋆</p>
+      <ul class="apps">
+        <li><a href="./habit-tracker/"><span class="ico">🌸</span><span>Habit Tracker<br><span class="url">habit-tracker/</span></span></a></li>
+        <li><a href="./todo-tracker/"><span class="ico">📋</span><span>To Do<br><span class="url">todo-tracker/</span></span></a></li>
+        <li><a href="./clock/"><span class="ico">🕹️</span><span>Clock<br><span class="url">clock/</span></span></a></li>
+        <li><a href="./dday/"><span class="ico">⏳</span><span>D-Day<br><span class="url">dday/</span></span></a></li>
+      </ul>
+      <div class="status-bar"><p class="status-bar-field">4 widgets · 98.css · Win95 theme</p></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clock - hyein.exe</title>
+<link rel="stylesheet" href="https://unpkg.com/98.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0; background: transparent;
+    font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+    -webkit-font-smoothing: none;
+    display: flex; justify-content: center; align-items: flex-start; min-height: 100vh;
+  }
+  .window { width: 230px; margin: 10px; }
+  .lcd {
+    background: #000; color: #00ff66; border: 2px inset #fff;
+    text-align: center; padding: 10px 6px; margin: 4px 0;
+    font-family: "Courier New", monospace; letter-spacing: 2px;
+  }
+  .time { font-size: 34px; font-weight: bold; text-shadow: 0 0 6px #00ff66; }
+  .date { font-size: 12px; color: #00cc55; margin-top: 4px; }
+  .ampm { font-size: 12px; color: #00cc55; }
+  .status-bar-field { text-align: center; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">🕹️ Clock — hyein.exe</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="lcd">
+        <div class="time" id="time">00:00:00</div>
+        <div class="date"><span id="ampm" class="ampm"></span> <span id="date"></span></div>
+      </div>
+      <div class="status-bar">
+        <p class="status-bar-field" id="weekday">·</p>
+      </div>
+    </div>
+  </div>
+<script>
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  function tick() {
+    const d = new Date();
+    let h = d.getHours();
+    const ampm = h < 12 ? "AM" : "PM";
+    const hh = String(((h + 11) % 12) + 1).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const ss = String(d.getSeconds()).padStart(2, "0");
+    document.getElementById("time").textContent = `${hh}:${mm}:${ss}`;
+    document.getElementById("ampm").textContent = ampm;
+    document.getElementById("date").textContent =
+      `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+    document.getElementById("weekday").textContent = `${WD[d.getDay()]}요일 ⊹˚.⋆`;
+  }
+  tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>

@@ -15,6 +15,9 @@ concurrency:
   group: sync-notion
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # 액션 런타임을 Node24로 (deprecation 경고 해소)
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Sync from Notion
         env:
@@ -34,10 +37,10 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- habit-tracker/data.json; then
+          if git diff --quiet -- habit-tracker/data.json todo-tracker/data.json; then
             echo "변경 없음 — 커밋 건너뜀"
           else
-            git add habit-tracker/data.json
-            git commit -m "chore: sync habit data $(date -u +%Y-%m-%dT%H:%MZ)"
+            git add habit-tracker/data.json todo-tracker/data.json
+            git commit -m "chore: sync notion data $(date -u +%Y-%m-%dT%H:%MZ)"
             git push
           fi
