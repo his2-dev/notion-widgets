@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Habit Tracker - hyein.exe</title>
+<link rel="stylesheet" href="https://unpkg.com/98.css" />
+<style>
+  :root { --teal: #008080; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--teal);
+    font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+    -webkit-font-smoothing: none;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh;
+  }
+  .window { width: 320px; margin: 10px; }
+  .title-bar-text { display: flex; align-items: center; gap: 4px; }
+  .grid {
+    width: 100%; border-collapse: collapse; margin-top: 4px;
+    font-size: 12px; table-layout: fixed;
+  }
+  .grid th, .grid td {
+    border: 1px solid #808080; text-align: center; padding: 2px 0; height: 22px;
+  }
+  .grid thead th { background: #c0c0c0; font-weight: bold; }
+  .grid td.habit-name {
+    text-align: left; padding-left: 6px; background: #dfdfdf;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cell { user-select: none; }
+  .cell.done { background: #000080; color: #fff; }
+  .cell.done::after { content: "✓"; }
+  .cell.today { box-shadow: inset 0 0 0 2px #ff00ff; }
+  .bar-outer {
+    height: 16px; border: 2px inset #fff; background: #fff; margin-top: 8px; position: relative;
+  }
+  .bar-inner {
+    height: 100%; background: repeating-linear-gradient(
+      90deg, #000080 0, #000080 8px, #1084d0 8px, #1084d0 10px);
+    width: 0%; transition: width .3s steps(8);
+  }
+  .bar-label { position: absolute; inset: 0; text-align: center; font-size: 11px; line-height: 16px; }
+  .statusbar { display: flex; gap: 6px; margin-top: 8px; }
+  .status-field { flex: 1; text-align: center; }
+  .streak { color: #aa0000; font-weight: bold; }
+  .sync { font-size: 10px; color: #555; text-align: right; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">🌸 Habit Tracker — hyein.exe</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <p style="margin:2px 0 6px; font-size:12px;">이번 주 습관 ⊹˚.⋆ <span style="color:#555;">(입력은 노션에서)</span></p>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th style="width:62px;">습관</th>
+            <th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th><th>일</th>
+          </tr>
+        </thead>
+        <tbody id="grid-body"></tbody>
+      </table>
+
+      <div class="bar-outer"><div class="bar-inner" id="bar"></div>
+        <div class="bar-label" id="bar-label">0%</div></div>
+
+      <div class="statusbar">
+        <div class="status-bar-field status-field">🔥 연속 <span class="streak" id="streak">0</span>일</div>
+        <div class="status-bar-field status-field">달성 <span id="count">0</span>/35</div>
+      </div>
+      <div class="sync" id="sync">동기화 대기 중…</div>
+    </div>
+  </div>
+
+<script>
+  // 표시 전용: GitHub Action이 갱신한 data.json 을 읽어 렌더 (입력은 노션 Habit DB에서)
+  const HABITS = ["운동", "공부", "독서", "일기", "기상"];
+  const DAYS = 7;
+  const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0 ... Sun=6
+
+  function mondayOf(d) {
+    const x = new Date(d); const day = (x.getDay() + 6) % 7;
+    x.setHours(0,0,0,0); x.setDate(x.getDate() - day); return x;
+  }
+  function ymd(d){ return d.toISOString().slice(0,10); }
+
+  async function load() {
+    let data;
+    try {
+      const res = await fetch("./data.json?t=" + Date.now());
+      data = await res.json();
+    } catch (e) {
+      document.getElementById("sync").textContent = "data.json 로드 실패 — 첫 동기화 전이거나 경로 확인 필요";
+      data = { rows: [], updatedAt: null };
+    }
+    render(data);
+  }
+
+  function render(data) {
+    // 이번 주 월~일 날짜 → 행별 체크 매핑
+    const monday = mondayOf(new Date());
+    const weekDates = Array.from({length: DAYS}, (_, i) => {
+      const d = new Date(monday); d.setDate(d.getDate() + i); return ymd(d);
+    });
+    const byDate = {};
+    (data.rows || []).forEach(r => { byDate[r.date] = r; });
+
+    const body = document.getElementById("grid-body");
+    body.innerHTML = "";
+    let done = 0;
+
+    HABITS.forEach(h => {
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.className = "habit-name"; name.textContent = h;
+      tr.appendChild(name);
+      weekDates.forEach((date, c) => {
+        const td = document.createElement("td");
+        const checked = !!(byDate[date] && byDate[date][h]);
+        td.className = "cell" + (checked ? " done" : "") + (c === todayIdx ? " today" : "");
+        if (checked) done++;
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+
+    const total = HABITS.length * DAYS;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById("bar").style.width = pct + "%";
+    document.getElementById("bar-label").textContent = pct + "%";
+    document.getElementById("count").textContent = done;
+
+    let streak = 0;
+    for (let c = todayIdx; c >= 0; c--) {
+      const row = byDate[weekDates[c]];
+      const allDone = row && HABITS.every(h => row[h]);
+      if (allDone) streak++; else break;
+    }
+    document.getElementById("streak").textContent = streak;
+
+    const when = data.updatedAt ? new Date(data.updatedAt).toLocaleString("ko-KR") : "—";
+    document.getElementById("sync").textContent = "🔄 마지막 동기화: " + when;
+  }
+
+  load();
+  setInterval(load, 5 * 60 * 1000); // 5분마다 data.json 재확인
+</script>
+</body>
+</html>

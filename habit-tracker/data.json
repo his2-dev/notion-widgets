@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2026-06-13T12:00:00.000Z",
+  "rows": [
+    { "date": "2026-06-08", "운동": false, "공부": true,  "독서": true,  "일기": true,  "기상": true  },
+    { "date": "2026-06-09", "운동": true,  "공부": true,  "독서": false, "일기": false, "기상": true  },
+    { "date": "2026-06-10", "운동": true,  "공부": true,  "독서": true,  "일기": true,  "기상": false },
+    { "date": "2026-06-11", "운동": false, "공부": true,  "독서": false, "일기": true,  "기상": true  },
+    { "date": "2026-06-12", "운동": true,  "공부": false, "독서": true,  "일기": true,  "기상": true  },
+    { "date": "2026-06-13", "운동": true,  "공부": true,  "독서": true,  "일기": true,  "기상": true  }
+  ]
+}
