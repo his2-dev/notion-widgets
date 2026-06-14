@@ -28,13 +28,6 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Seed today's habit row
-        continue-on-error: true   # 생성 실패(권한 등)해도 위젯 sync는 계속 진행
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          SEED_DATE: ${{ github.event.inputs.seed_date }}
-        run: node scripts/seed-habit.mjs
-
       - name: Sync from Notion
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
