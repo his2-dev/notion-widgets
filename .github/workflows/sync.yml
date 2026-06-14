@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}    # Actions 탭에서 수동 실행 버튼
   push:
     branches: [main]
-    paths: [scripts/sync.mjs, .github/workflows/sync.yml]
+    paths: [scripts/sync.mjs, scripts/seed-habit.mjs, .github/workflows/sync.yml]
 
 permissions:
   contents: write
@@ -27,6 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+
+      - name: Seed today's habit row
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: node scripts/seed-habit.mjs
 
       - name: Sync from Notion
         env:
