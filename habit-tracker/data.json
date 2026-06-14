@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-14T13:26:38.275Z",
+  "updatedAt": "2026-06-14T13:38:36.363Z",
   "rows": [
     {
       "date": "2026-06-07",
@@ -705,6 +705,19 @@
     },
     {
       "date": "2026-07-31",
+      "운동": false,
+      "공부": false,
+      "독서": false,
+      "일기": false,
+      "기상": false,
+      "mood": null,
+      "sleepHours": null,
+      "focusMinutes": null,
+      "highlight": "",
+      "oneLine": ""
+    },
+    {
+      "date": "2026-08-15",
       "운동": false,
       "공부": false,
       "독서": false,
