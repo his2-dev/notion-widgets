@@ -9,11 +9,15 @@ if (!TOKEN) { console.error("❌ NOTION_TOKEN 환경변수가 없습니다."); p
 const DATA_SOURCE = "a2294bf0-8e42-4078-a36a-43c49e264081";
 const DATABASE    = "382061bcdc0a41ae862368d6931f8122";
 
-// KST(UTC+9) 기준 오늘
-const kst = new Date(Date.now() + 9 * 3600 * 1000);
-const y = kst.getUTCFullYear();
-const m = kst.getUTCMonth() + 1;
-const d = kst.getUTCDate();
+// 대상 날짜: SEED_DATE(YYYY-MM-DD) 있으면 그 날짜(백필/테스트용), 없으면 KST 오늘
+const override = (process.env.SEED_DATE || "").trim();
+let y, m, d;
+if (/^\d{4}-\d{2}-\d{2}$/.test(override)) {
+  [y, m, d] = override.split("-").map(Number);
+} else {
+  const kst = new Date(Date.now() + 9 * 3600 * 1000); // UTC+9
+  y = kst.getUTCFullYear(); m = kst.getUTCMonth() + 1; d = kst.getUTCDate();
+}
 const ymd = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 const title = `${m}/${d}`;
 
