@@ -3,15 +3,10 @@ name: Sync Notion → data.json
 on:
   schedule:
     - cron: "0 * * * *"   # 매시 정각 (UTC). 습관 시각화엔 충분.
-  workflow_dispatch:       # Actions 탭에서 수동 실행 버튼
-    inputs:
-      seed_date:
-        description: "백필할 날짜 (YYYY-MM-DD). 비우면 오늘."
-        required: false
-        default: ""
+  workflow_dispatch: {}    # Actions 탭에서 수동 실행 버튼
   push:
     branches: [main]
-    paths: [scripts/sync.mjs, scripts/seed-habit.mjs, .github/workflows/sync.yml]
+    paths: [scripts/sync.mjs, .github/workflows/sync.yml]
 
 permissions:
   contents: write
