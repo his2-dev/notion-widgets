@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Habit Heatmap - hyein.exe</title>
+<link rel="stylesheet" href="https://unpkg.com/98.css" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: transparent;
+    font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+    -webkit-font-smoothing: none;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh;
+  }
+  .window { width: 360px; margin: 10px; }
+  .title-bar-text { display: flex; align-items: center; gap: 4px; }
+
+  /* 상단 통계 카드 */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .stat {
+    min-width: 0; padding: 5px 3px; background: #fff; border: 2px inset #fff;
+    text-align: center; font-size: 10px;
+  }
+  .stat b { display: block; margin-top: 2px; font-size: 13px; }
+  .stat .fire { color: #aa0000; }
+
+  /* 깃잔디 히트맵 */
+  .heat-caption { margin: 9px 0 4px; font-size: 11px; color: #555; }
+  .heat-wrap { display: flex; gap: 3px; }
+  .heat-days {
+    display: grid; grid-template-rows: repeat(7, 1fr); gap: 3px;
+    font-size: 8px; color: #777; text-align: right; padding-right: 1px;
+  }
+  .heat-days span { line-height: 1; display: flex; align-items: center; justify-content: flex-end; }
+  .heat-grid {
+    flex: 1; display: grid;
+    grid-template-rows: repeat(7, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 3px;
+  }
+  .hcell {
+    aspect-ratio: 1 / 1; border: 1px solid #b0b0b0; background: #dfdfdf;
+  }
+  .hcell.future { background: transparent; border: 1px dashed #d0d0d0; }
+  .hcell.today { box-shadow: inset 0 0 0 2px #ff00ff; }
+
+  .legend { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 5px; font-size: 9px; color: #777; }
+  .legend i { width: 11px; height: 11px; display: inline-block; border: 1px solid #b0b0b0; }
+
+  /* 습관별 주간 진행바 */
+  .bars-title { margin: 11px 0 5px; font-size: 11px; color: #555; }
+  .bar-row { display: grid; grid-template-columns: 40px 1fr; gap: 6px; align-items: center; margin-top: 5px; }
+  .bar-name { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-outer { height: 14px; border: 2px inset #fff; background: #fff; position: relative; }
+  .bar-inner {
+    height: 100%; width: 0%; background: repeating-linear-gradient(
+      90deg, #000080 0, #000080 8px, #1084d0 8px, #1084d0 10px);
+    transition: width .3s steps(8);
+  }
+  .bar-label { position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 14px; }
+
+  .sync { font-size: 10px; color: #555; text-align: right; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">🔥 Habit Heatmap — hyein.exe</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <div class="stats">
+        <div class="stat">🔥 연속<b class="fire" id="streak">0일</b></div>
+        <div class="stat">이번달<b id="month-pct">0%</b></div>
+        <div class="stat">최고<b id="best">0일</b></div>
+      </div>
+
+      <p class="heat-caption">최근 12주 ⊹˚.⋆ <span style="color:#999;">(칸 색 = 그날 달성 습관 수)</span></p>
+      <div class="heat-wrap">
+        <div class="heat-days">
+          <span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span>일</span>
+        </div>
+        <div class="heat-grid" id="heat-grid"></div>
+      </div>
+      <div class="legend">
+        적음 <i style="background:#dfdfdf"></i><i style="background:#a4c8f0"></i><i style="background:#1084d0"></i><i style="background:#000080"></i> 많음
+      </div>
+
+      <p class="bars-title">이번 주 습관별 달성 ⊹˚.⋆</p>
+      <div id="bars"></div>
+
+      <div class="sync" id="sync">동기화 대기 중…</div>
+    </div>
+  </div>
+
+<script>
+  // 표시 전용: GitHub Action이 갱신한 habit-tracker/data.json 을 재사용 (입력은 노션 Habit DB에서)
+  const HABITS = ["운동", "공부", "독서", "일기", "기상"];
+  const WEEKS = 12;
+
+  function startOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function mondayOf(d){
+    const x = startOfDay(d); const day = (x.getDay() + 6) % 7;
+    x.setDate(x.getDate() - day); return x;
+  }
+  function ymd(d){
+    const x = new Date(d);
+    return x.getFullYear() + "-" +
+      String(x.getMonth()+1).padStart(2,"0") + "-" +
+      String(x.getDate()).padStart(2,"0");
+  }
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  function countDone(row){ return row ? HABITS.reduce((s,h)=> s + (row[h] ? 1 : 0), 0) : 0; }
+  function heatColor(n){
+    if (n <= 0) return "#dfdfdf";
+    if (n <= 2) return "#a4c8f0";
+    if (n <= 4) return "#1084d0";
+    return "#000080";
+  }
+
+  async function load(){
+    let data;
+    try {
+      const res = await fetch("../habit-tracker/data.json?t=" + Date.now());
+      data = await res.json();
+    } catch (e) {
+      document.getElementById("sync").textContent = "data.json 로드 실패 — 경로/첫 동기화 확인";
+      data = { rows: [], updatedAt: null };
+    }
+    render(data);
+  }
+
+  function render(data){
+    const byDate = {};
+    (data.rows || []).forEach(r => { byDate[r.date] = r; });
+    const today = startOfDay(new Date());
+    const todayStr = ymd(today);
+
+    // ── 깃잔디: 최근 12주 (현재 주의 월요일 기준 11주 전 월요일부터) ──
+    const gridStart = addDays(mondayOf(today), -7 * (WEEKS - 1));
+    const grid = document.getElementById("heat-grid");
+    grid.innerHTML = "";
+    for (let w = 0; w < WEEKS; w++){
+      for (let d = 0; d < 7; d++){
+        const date = addDays(gridStart, w * 7 + d);
+        const cell = document.createElement("div");
+        cell.className = "hcell";
+        if (startOfDay(date) > today){
+          cell.classList.add("future");
+        } else {
+          const n = countDone(byDate[ymd(date)]);
+          cell.style.background = heatColor(n);
+          cell.title = ymd(date) + " · " + n + "/5";
+        }
+        if (ymd(date) === todayStr) cell.classList.add("today");
+        grid.appendChild(cell);
+      }
+    }
+
+    // ── 현재 연속일 (달성수>=1인 날, 오늘 미체크면 어제부터) ──
+    let streak = 0;
+    let cur = new Date(today);
+    if (countDone(byDate[ymd(cur)]) < 1) cur = addDays(cur, -1); // 오늘 아직이면 끊지 않음
+    while (countDone(byDate[ymd(cur)]) >= 1){ streak++; cur = addDays(cur, -1); }
+    document.getElementById("streak").textContent = streak + "일";
+
+    // ── 최고 연속일 (전체 기록에서 가장 긴 연속 달성일) ──
+    const activeDates = Object.keys(byDate)
+      .filter(k => countDone(byDate[k]) >= 1).sort();
+    let best = 0, run = 0, prev = null;
+    activeDates.forEach(k => {
+      if (prev && ymd(addDays(new Date(prev), 1)) === k) run++; else run = 1;
+      if (run > best) best = run;
+      prev = k;
+    });
+    document.getElementById("best").textContent = best + "일";
+
+    // ── 이번달 달성률: (이번달 1일~오늘 달성수 합) / (경과일 × 5) ──
+    const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    let mSum = 0, mDays = 0;
+    for (let dt = new Date(mStart); startOfDay(dt) <= today; dt = addDays(dt, 1)){
+      mSum += countDone(byDate[ymd(dt)]); mDays++;
+    }
+    const mPct = mDays ? Math.round((mSum / (mDays * 5)) * 100) : 0;
+    document.getElementById("month-pct").textContent = mPct + "%";
+
+    // ── 습관별 이번 주 달성 진행바 ──
+    const wkMon = mondayOf(today);
+    const weekDates = Array.from({length: 7}, (_, i) => ymd(addDays(wkMon, i)));
+    const bars = document.getElementById("bars");
+    bars.innerHTML = "";
+    HABITS.forEach(h => {
+      const done = weekDates.reduce((s, dstr) => s + (byDate[dstr] && byDate[dstr][h] ? 1 : 0), 0);
+      const pct = Math.round((done / 7) * 100);
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML =
+        '<div class="bar-name">' + h + '</div>' +
+        '<div class="bar-outer"><div class="bar-inner" style="width:' + pct + '%"></div>' +
+        '<div class="bar-label">' + done + '/7</div></div>';
+      bars.appendChild(row);
+    });
+
+    const when = data.updatedAt ? new Date(data.updatedAt).toLocaleString("ko-KR") : "—";
+    document.getElementById("sync").textContent = "🔄 마지막 동기화: " + when;
+  }
+
+  load();
+  setInterval(load, 5 * 60 * 1000); // 5분마다 data.json 재확인
+</script>
+</body>
+</html>
