@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tropical Aquarium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+
+  /* 흰 배경 + 수조만 (노션 위젯용, 깔끔하게) */
+  #stage {
+    position: fixed; inset: 0;
+    background: #ffffff;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  #scene {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
+
+  /* 픽셀 시계 (수조 아래) */
+  #clock {
+    position: absolute; left: 0; right: 0; bottom: 5%;
+    text-align: center; pointer-events: none; user-select: none;
+    font-family: "Press Start 2P", monospace;
+  }
+  #time {
+    font-size: clamp(22px, 6vw, 44px); color: #20444c; line-height: 1;
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.7), 4px 4px 0 rgba(40,80,90,0.12);
+    letter-spacing: 2px;
+  }
+  #time .sep { transition: opacity 0.15s; }
+  #date {
+    margin-top: 14px; font-size: clamp(8px, 2vw, 12px);
+    color: #6b8a90; letter-spacing: 2px;
+  }
+
+  #loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #6b8a90; font-family: system-ui, sans-serif; letter-spacing: 2px; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="scene"></canvas>
+    <div id="clock">
+      <div id="time">--<span class="sep">:</span>--</div>
+      <div id="date">---- -- --</div>
+    </div>
+    <div id="loading">loading aquarium…</div>
+  </div>
+
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+  import * as THREE from 'three';
+
+  // ---------- PSX 룩: 버텍스 스냅 (움직이는 요소에만) ----------
+  const SNAP_GRID = 90.0;
+  const timeUniforms = [];
+  function ps2ify(material, { sway = false } = {}) {
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = { value: 0 };
+      timeUniforms.push(shader.uniforms.uTime);
+      if (sway) {
+        shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
+          `#include <begin_vertex>
+           float h = max(transformed.y, 0.0);
+           transformed.x += sin(uTime * 1.5 + position.y + position.z) * h * 0.06;`);
+      }
+      shader.vertexShader = 'uniform float uTime;\n' +
+        shader.vertexShader.replace('#include <project_vertex>',
+          `#include <project_vertex>
+           { vec4 sn = gl_Position; sn.xyz /= sn.w;
+             sn.xy = floor(sn.xy * ${SNAP_GRID.toFixed(1)}) / ${SNAP_GRID.toFixed(1)};
+             sn.xyz *= sn.w; gl_Position = sn; }`);
+    };
+    return material;
+  }
+  const lam = (o) => new THREE.MeshLambertMaterial(o); // 정적(지터 X)
+
+  // ---------- 셋업 ----------
+  const canvas = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xa9b4ba, 1.05));
+  const sun = new THREE.DirectionalLight(0xfff4e2, 0.7); sun.position.set(4, 9, 7); scene.add(sun);
+  const tankLight = new THREE.PointLight(0xfff8e8, 0.7, 18); scene.add(tankLight);
+
+  // ---------- 수조 치수 ----------
+  const HW = 4.3, HH = 2.25, HD = 2.0;       // 내부 반치수
+  const SAND_Y = -HH + 0.25, WATER_TOP = HH - 0.3;
+  tankLight.position.set(0, HH - 0.2, 0.5);
+
+  const tank = new THREE.Group(); scene.add(tank);
+
+  // 유리
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(HW * 2, HH * 2, HD * 2),
+    new THREE.MeshPhongMaterial({ color: 0xcfeef5, transparent: true, opacity: 0.12,
+      shininess: 95, specular: 0xffffff, side: THREE.DoubleSide, depthWrite: false }));
+  glass.renderOrder = 5; tank.add(glass);
+  // 유리 모서리 라인
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(glass.geometry),
+    new THREE.LineBasicMaterial({ color: 0x9fb8c0, transparent: true, opacity: 0.5 }));
+  edges.renderOrder = 6; tank.add(edges);
+
+  // 물
+  const water = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 - 0.1, WATER_TOP - SAND_Y, HD * 2 - 0.1),
+    new THREE.MeshPhongMaterial({ color: 0x1fa6e6, transparent: true, opacity: 0.22,
+      shininess: 95, specular: 0xbfefff, side: THREE.DoubleSide, depthWrite: false }));
+  water.position.y = (WATER_TOP + SAND_Y) / 2; water.renderOrder = 1; tank.add(water);
+
+  // 상단 프레임 (4변) — 화이트 (조명 음영으로 형태가 보임)
+  const black = lam({ color: 0xf3f5f6 });
+  function frameBar(w, d, x, z) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.34, d), black);
+    bar.position.set(x, HH + 0.05, z); tank.add(bar);
+  }
+  frameBar(HW * 2 + 0.4, 0.32, 0, -HD - 0.04);
+  frameBar(HW * 2 + 0.4, 0.32, 0, HD + 0.04);
+  frameBar(0.32, HD * 2 + 0.4, -HW - 0.04, 0);
+  frameBar(0.32, HD * 2 + 0.4, HW + 0.04, 0);
+  // 조명 바
+  const lightBar = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 - 1, 0.12, 0.3),
+    new THREE.MeshBasicMaterial({ color: 0xfffdf2 }));
+  lightBar.position.set(0, HH - 0.05, 0); tank.add(lightBar);
+
+  // 검정 받침
+  const baseTrim = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 + 0.5, 0.4, HD * 2 + 0.5), black);
+  baseTrim.position.y = -HH - 0.18; tank.add(baseTrim);
+  const stand = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 + 0.2, 0.5, HD * 2 + 0.2), lam({ color: 0xe4e7e9 }));
+  stand.position.y = -HH - 0.55; tank.add(stand);
+
+  // ---------- 모래 ----------
+  const sand = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 - 0.15, 0.5, HD * 2 - 0.15), lam({ color: 0xe8dcb5, flatShading: true }));
+  sand.position.y = SAND_Y - 0.25; tank.add(sand);
+  for (let i = 0; i < 14; i++) { // 잔자갈
+    const p = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + Math.random() * 0.12, 0),
+      lam({ color: new THREE.Color().setHSL(0.1, 0.3, 0.6 + Math.random() * 0.15), flatShading: true }));
+    p.position.set((Math.random() - 0.5) * HW * 1.8, SAND_Y + 0.05, (Math.random() - 0.5) * HD * 1.6);
+    p.scale.y = 0.5; tank.add(p);
+  }
+
+  // ---------- 바위 ----------
+  function rock(x, z, s) {
+    const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), lam({ color: 0x6a6e72, flatShading: true }));
+    m.position.set(x, SAND_Y + s * 0.35, z); m.rotation.set(Math.random(), Math.random(), Math.random());
+    m.scale.y = 0.8; tank.add(m);
+  }
+  rock(-0.3, -0.6, 0.9); rock(1.0, -0.9, 0.6); rock(-2.6, -0.4, 0.5);
+
+  // ---------- 열대 수초 (풍성하게) ----------
+  function blade(x, z, h, hue, sat, lit) {
+    const g = new THREE.PlaneGeometry(0.5, h, 1, 5); g.translate(0, h / 2, 0);
+    const m = new THREE.Mesh(g, ps2ify(lam({ color: new THREE.Color().setHSL(hue, sat, lit), flatShading: true, side: THREE.DoubleSide }), { sway: true }));
+    m.position.set(x, SAND_Y, z); m.rotation.y = Math.random() * Math.PI; tank.add(m);
+  }
+  function plantCluster(cx, cz, n, tall) {
+    for (let i = 0; i < n; i++) {
+      blade(cx + (Math.random() - 0.5) * 1.2, cz + (Math.random() - 0.5) * 1.0,
+        tall * (0.6 + Math.random() * 0.7), 0.30 + Math.random() * 0.06, 0.55, 0.32 + Math.random() * 0.12);
+    }
+  }
+  plantCluster(-3.3, -0.6, 5, 2.6); plantCluster(-1.3, -1.1, 4, 3.0);
+  plantCluster(1.4, -1.0, 4, 3.0); plantCluster(3.2, -0.8, 4, 2.5);
+
+  // ---------- 산호 (핑크/레드 포인트) ----------
+  function coral(x, z, hue) {
+    const grp = new THREE.Group(); grp.position.set(x, SAND_Y, z);
+    const base = new THREE.Color().setHSL(hue, 0.7, 0.6);
+    for (let i = 0; i < 7; i++) {
+      const h = 0.5 + Math.random() * 0.9;
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.1, h, 4),
+        lam({ color: base.clone().offsetHSL(0, 0, (Math.random() - 0.5) * 0.1), flatShading: true }));
+      branch.position.set((Math.random() - 0.5) * 0.6, h / 2, (Math.random() - 0.5) * 0.5);
+      branch.rotation.z = (Math.random() - 0.5) * 0.8; branch.rotation.x = (Math.random() - 0.5) * 0.6;
+      grp.add(branch);
+    }
+    tank.add(grp);
+  }
+  coral(-2.2, 0.3, 0.97); coral(1.9, 0.4, 0.02); coral(0.0, 0.6, 0.93);
+
+  // ---------- 2D 스프라이트 열대어 (assets/fish/*.png) ----------
+  const texLoader = new THREE.TextureLoader();
+  const fishes = [];
+  const FISH_DEFS = [
+    { file: 'blue-tang.png',   size: 1.15, count: 1, speed: 0.38 },
+    { file: 'yellow-tang.png', size: 1.1,  count: 1, speed: 0.4 },
+    { file: 'clownfish.png',   size: 0.78, count: 2, speed: 0.45 },
+    { file: 'pink-fish.png',   size: 0.68, count: 1, speed: 0.5 },
+    { file: 'neon-tetra.png',  size: 0.58, count: 2, speed: 0.62 },
+  ];
+
+  function spawnFish(tex, def) {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = 8;
+    for (let i = 0; i < def.count; i++) {
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: false, alphaTest: 0.5, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      tank.add(mesh);
+      const pos = new THREE.Vector3((Math.random() - 0.5) * HW * 1.2, SAND_Y + 0.9 + Math.random() * 1.3, (Math.random() - 0.5) * HD * 0.7);
+      const dir = new THREE.Vector3(Math.random() < 0.5 ? 1 : -1, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4).normalize();
+      fishes.push({ mesh, pos, dir, base: def.size, speed: def.speed * (0.8 + Math.random() * 0.5), target: dir.clone(), timer: 0, phase: Math.random() * 10 });
+    }
+  }
+  FISH_DEFS.forEach((def) => texLoader.load('assets/fish/' + def.file, (tex) => spawnFish(tex, def)));
+
+  // ---------- 버블 (두 기둥, 풍성하게) ----------
+  const bubbles = [];
+  const bGeo = new THREE.SphereGeometry(0.055, 5, 4);
+  const bMat = new THREE.MeshBasicMaterial({ color: 0xeafdff, transparent: true, opacity: 0.5 });
+  const emitters = [{ x: 2.6, z: 0.95 }, { x: -3.0, z: -0.6 }]; // 첫 기둥은 보물상자에서
+  const BUBBLE_BASE = SAND_Y + (WATER_TOP - SAND_Y) * 0.18; // 발생 시작 높이(하단)
+  for (let i = 0; i < 24; i++) {
+    const e = emitters[i % emitters.length];
+    const b = new THREE.Mesh(bGeo, bMat);
+    b.userData = { x: e.x + (Math.random() - 0.5) * 0.5, z: e.z + (Math.random() - 0.5) * 0.5, y: BUBBLE_BASE + Math.random() * (WATER_TOP - BUBBLE_BASE), sp: 0.4 + Math.random() * 0.6, s: 0.6 + Math.random() * 0.8, base: BUBBLE_BASE };
+    b.scale.setScalar(b.userData.s); tank.add(b); bubbles.push(b);
+  }
+
+  // ---------- Frutiger Aero 분위기 ----------
+  function softCircle() { // 보케용 부드러운 원 텍스처
+    const s = 64, c = document.createElement('canvas'); c.width = c.height = s;
+    const x = c.getContext('2d'), g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(216,244,255,0.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, s, s); return new THREE.CanvasTexture(c);
+  }
+  const softTex = softCircle();
+  const bokeh = [];
+  for (let i = 0; i < 16; i++) { // 둥둥 떠다니는 빛망울
+    const m = new THREE.SpriteMaterial({ map: softTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.12 + Math.random() * 0.28, color: 0xddf6ff });
+    const sp = new THREE.Sprite(m); const sc = 0.3 + Math.random() * 0.8; sp.scale.set(sc, sc, 1);
+    sp.position.set((Math.random() - 0.5) * HW * 1.7, SAND_Y + Math.random() * (WATER_TOP - SAND_Y), -HD * 0.5 - Math.random() * 0.4);
+    sp.userData = { sp: 0.08 + Math.random() * 0.18, phase: Math.random() * 10, baseO: m.opacity };
+    tank.add(sp); bokeh.push(sp);
+  }
+  const gloss = new THREE.Mesh(new THREE.PlaneGeometry(0.5, HH * 2.2), // 유리 광택 스트릭
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false }));
+  gloss.position.set(-HW * 0.45, 0, HD + 0.03); gloss.rotation.z = 0.25; tank.add(gloss);
+
+  // ---------- 장식 이미지 (assets/decor/*.png — 있으면 자동 배치) ----------
+  const DECOR_DEFS = [
+    { file: 'anemone.png',        x: -2.6, z: 0.3,  h: 1.5 },
+    { file: 'treasure-chest.png', x: 2.6,  z: 0.8,  h: 1.3, yoff: -0.3 },
+    { file: 'shipwreck.png',      x: 0.3,  z: -0.9, h: 2.0 },
+    { file: 'castle.png',         x: -0.4, z: -0.7, h: 2.4 },
+    { file: 'starfish.png',       x: 1.3,  z: 1.1,  h: 0.6 },
+  ];
+  DECOR_DEFS.forEach((def) => texLoader.load('assets/decor/' + def.file, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const aspect = (tex.image && tex.image.width) ? tex.image.width / tex.image.height : 1;
+    const h = def.h, w = h * aspect;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: false, alphaTest: 0.5, side: THREE.DoubleSide }));
+    mesh.position.set(def.x, SAND_Y + h / 2 - 0.1 + (def.yoff || 0), def.z); tank.add(mesh); // yoff: 모래에 묻힘 보정
+  }, undefined, () => { /* 파일 아직 없음 — 무시 */ }));
+
+  // ---------- 카메라 핏 (반응형) ----------
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const RES = 2;
+    renderer.setSize(Math.max(1, Math.floor(w / RES)), Math.max(1, Math.floor(h / RES)), false);
+    const aspect = w / h; camera.aspect = aspect; camera.updateProjectionMatrix();
+    const vt = Math.tan(THREE.MathUtils.degToRad(46) / 2);
+    const distW = (HW + 1.0) / (vt * aspect);
+    const distH = (HH + 2.6) / vt;            // 아래 시계 공간 확보
+    const dist = Math.max(distW, distH, 9);
+    // 정면 뷰 — 카메라와 시선 높이를 같게(수평) + x오프셋 0 → 기울임 없음
+    const LOOK_Y = -0.7;
+    camera.position.set(0, LOOK_Y, dist);
+    camera.lookAt(0, LOOK_Y, 0);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // ---------- 루프 ----------
+  const tmp = new THREE.Vector3();
+  const clock = new THREE.Clock();
+  let started = false;
+  function tick() {
+    const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+    for (const u of timeUniforms) u.value = t;
+
+    for (const f of fishes) {
+      f.timer -= dt;
+      if (f.timer <= 0) { f.timer = 3 + Math.random() * 3; f.target.set((Math.random() < 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.6), (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.4).normalize(); }
+      const d = f.target.clone();
+      if (f.pos.x > HW - 0.7) d.x -= 1.8; else if (f.pos.x < -HW + 0.7) d.x += 1.8;
+      if (f.pos.y > WATER_TOP - 0.5) d.y -= 1.6; else if (f.pos.y < SAND_Y + 0.6) d.y += 1.6;
+      if (f.pos.z > HD - 0.6) d.z -= 1.6; else if (f.pos.z < -HD + 0.6) d.z += 1.6;
+      d.normalize();
+      f.dir.lerp(d, dt * 0.9).normalize();
+      f.pos.addScaledVector(f.dir, f.speed * dt);
+      // 하드 클램프 — 절대 수조 밖으로 못 나감
+      f.pos.x = THREE.MathUtils.clamp(f.pos.x, -HW + 0.6, HW - 0.6);
+      f.pos.y = THREE.MathUtils.clamp(f.pos.y, SAND_Y + 0.5, WATER_TOP - 0.4);
+      f.pos.z = THREE.MathUtils.clamp(f.pos.z, -HD + 0.6, HD - 0.6);
+      f.mesh.position.copy(f.pos);
+      const sx = f.dir.x < 0 ? -f.base : f.base;   // 진행방향 따라 좌우반전 (텍스처는 오른쪽 향함)
+      f.mesh.scale.set(sx, f.base, 1);
+      f.mesh.rotation.z = Math.sin(t * 2.5 + f.phase) * 0.05 + f.dir.y * 0.35;
+    }
+    for (const b of bubbles) {
+      const u = b.userData; u.y += u.sp * dt;
+      if (u.y > WATER_TOP - 0.1) u.y = u.base;
+      b.position.set(u.x + Math.sin(t * 1.6 + u.z) * 0.06, u.y, u.z);
+    }
+    for (const sp of bokeh) { // 보케 부유
+      const u = sp.userData; sp.position.y += u.sp * dt; sp.position.x += Math.sin(t * 0.5 + u.phase) * 0.004;
+      if (sp.position.y > WATER_TOP) sp.position.y = SAND_Y;
+      sp.material.opacity = u.baseO * (0.5 + 0.5 * Math.sin(t * 0.8 + u.phase));
+    }
+    sun.intensity = 0.65 + Math.sin(t * 1.3) * 0.06;
+    renderer.render(scene, camera);
+    if (!started) { started = true; document.getElementById('loading').style.display = 'none'; }
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  // ---------- 픽셀 시계 ----------
+  const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const $time = document.getElementById('time'), $date = document.getElementById('date'), $sep = () => $time.querySelector('.sep');
+  const pad = (n) => String(n).padStart(2, '0');
+  function updateClock() {
+    const d = new Date();
+    $time.innerHTML = `${pad(d.getHours())}<span class="sep">:</span>${pad(d.getMinutes())}`;
+    $date.textContent = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}  ${DOW[d.getDay()]}`;
+  }
+  updateClock();
+  setInterval(() => { updateClock(); }, 1000);
+  // 콜론 깜빡임
+  setInterval(() => { const s = $sep(); if (s) s.style.opacity = s.style.opacity === '0' ? '1' : '0'; }, 500);
+  </script>
+</body>
+</html>
